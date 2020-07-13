@@ -8,26 +8,12 @@ import (
 	"runtime"
 	"runtime/pprof"
 	"strconv"
-	"time"
-
-	"github.com/tigrannajaryan/exp-otelproto/encodings/experimental"
-	sapmenc "github.com/tigrannajaryan/exp-otelproto/encodings/sapm"
-
-	"github.com/tigrannajaryan/exp-otelproto/protoimpls/sapm"
 
 	"github.com/tigrannajaryan/exp-otelproto/core"
-	"github.com/tigrannajaryan/exp-otelproto/encodings/octraceprotobuf"
 	"github.com/tigrannajaryan/exp-otelproto/encodings/otlp"
-	"github.com/tigrannajaryan/exp-otelproto/protoimpls/grpc_oc"
-	"github.com/tigrannajaryan/exp-otelproto/protoimpls/grpc_stream"
-	"github.com/tigrannajaryan/exp-otelproto/protoimpls/grpc_stream_lb"
-	"github.com/tigrannajaryan/exp-otelproto/protoimpls/grpc_stream_lb_async"
-	"github.com/tigrannajaryan/exp-otelproto/protoimpls/grpc_stream_lb_srv"
 	"github.com/tigrannajaryan/exp-otelproto/protoimpls/grpc_unary"
 	"github.com/tigrannajaryan/exp-otelproto/protoimpls/grpc_unary_async"
 	"github.com/tigrannajaryan/exp-otelproto/protoimpls/http11"
-	"github.com/tigrannajaryan/exp-otelproto/protoimpls/ws_stream_async"
-	"github.com/tigrannajaryan/exp-otelproto/protoimpls/ws_stream_sync"
 )
 
 func main() {
@@ -36,19 +22,18 @@ func main() {
 	ballastSizeBytes := uint64(4000) * 1024 * 1024
 	ballast := make([]byte, ballastSizeBytes)
 
-	var protocol string
-	flag.StringVar(&protocol, "protocol", "",
-		"protocol to benchmark (opencensus,ocack,unary,unaryasync,streamsync,streamlbtimedsync,"+
-			"streamlbalwayssync,streamlbasync,streamlbconc,streamlbsrv,wsstreamsync,wsstreamasync,wsstreamasyncconc,"+
-			"wsstreamasynczlib,http11,http11conc,sapm)",
+	protocol := flag.String("protocol", "",
+		"protocol to benchmark (unary,unaryasync,http11,http11conc)",
 	)
 
 	flag.IntVar(&options.Batches, "batches", 100, "total batches to send")
-	flag.IntVar(&options.SpansPerBatch, "spansperbatch", 100, "spans per batch")
-	flag.IntVar(&options.AttrPerSpan, "attrperspan", 2, "attributes per span")
+	flag.IntVar(&options.MetricsPerBatch, "metricsperbatch", 100, "metrics per batch")
+	flag.IntVar(&options.PointsPerMetric, "pointspermetric", 1, "points per metric")
+	flag.IntVar(&options.LabelsPerMetric, "labelspermetric", 10, "labels per metric")
+
+	var aggName = flag.String("aggregation", "", "aggregation name")
 	var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
-	var rebalancePeriodStr = flag.String("rebalance", "30s", "rebalance period (Valid time units are ns, us, ms, s, m, h)")
-	var rebalanceRequestLimit = uint(*flag.Uint("rebalance-request", 1000, "rebalance after specified number of requests"))
+	var aggregation core.Aggregation
 
 	flag.Parse()
 
@@ -61,71 +46,31 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	rebalancePeriod, err := time.ParseDuration(*rebalancePeriodStr)
-	if err != nil {
-		log.Fatal(err)
+	switch *aggName {
+	case "mmlsc":
+		aggregation = core.MMLSC
+	case "float64":
+		aggregation = core.FLOAT64
+	case "int64":
+		aggregation = core.INT64
+	default:
+		log.Fatal("unrecognized aggregation: ", aggName)
 	}
 
-	switch protocol {
-	case "opencensus":
-		benchmarkGRPCOpenCensus(options)
-	case "ocack":
-		benchmarkGRPCOpenCensusWithAck(options)
+	switch *protocol {
 	case "unary":
 		benchmarkGRPCUnary(options)
 	case "unaryasync":
 		benchmarkGRPCUnaryAsync(options)
-	case "streamsync":
-		benchmarkGRPCStreamNoLB(options)
-	case "streamlbtimedsync":
-		benchmarkGRPCStreamLBTimedSync(options, rebalancePeriod)
-	case "streamlbalwayssync":
-		benchmarkGRPCStreamLBAlwaysSync(options)
-	case "streamlbasync":
-		benchmarkGRPCStreamLBAsync(options, rebalancePeriod, rebalanceRequestLimit, 1)
-	case "streamlbconc":
-		benchmarkGRPCStreamLBAsync(options, rebalancePeriod, rebalanceRequestLimit, 10)
-	case "streamlbsrv":
-		benchmarkGRPCStreamLBSrv(options, rebalancePeriod, rebalanceRequestLimit)
-	case "wsstreamsync":
-		benchmarkWSStreamSync(options)
-	case "wsstreamasync":
-		benchmarkWSStreamAsync(options, experimental.CompressionMethod_NONE, 1)
-	case "wsstreamasyncconc":
-		benchmarkWSStreamAsync(options, experimental.CompressionMethod_NONE, 10)
-	case "wsstreamasynczlib":
-		benchmarkWSStreamAsync(options, experimental.CompressionMethod_ZLIB, 1)
 	case "http11":
 		benchmarkHttp11(options, 1)
 	case "http11conc":
 		benchmarkHttp11(options, 10)
-	case "sapm":
-		benchmarkSAPM(options, 1)
 	default:
 		flag.Usage()
 	}
 
 	runtime.KeepAlive(ballast)
-}
-
-func benchmarkGRPCOpenCensus(options core.Options) {
-	benchmarkImpl(
-		"GRPC/OpenCensus",
-		options,
-		func() core.Client { return &grpc_oc.Client{} },
-		func() core.Server { return &grpc_oc.Server{} },
-		func() core.SpanGenerator { return octraceprotobuf.NewGenerator() },
-	)
-}
-
-func benchmarkGRPCOpenCensusWithAck(options core.Options) {
-	benchmarkImpl(
-		"GRPC/OpenCensusWithAck",
-		options,
-		func() core.Client { return &grpc_oc.Client{WaitForAck: true} },
-		func() core.Server { return &grpc_oc.Server{SendAck: true} },
-		func() core.SpanGenerator { return octraceprotobuf.NewGenerator() },
-	)
 }
 
 func benchmarkGRPCUnary(options core.Options) {
@@ -134,7 +79,7 @@ func benchmarkGRPCUnary(options core.Options) {
 		options,
 		func() core.Client { return &grpc_unary.Client{} },
 		func() core.Server { return &grpc_unary.Server{} },
-		func() core.SpanGenerator { return otlp.NewGenerator() },
+		func() core.MetricGenerator { return otlp.NewGenerator() },
 	)
 }
 
@@ -144,103 +89,7 @@ func benchmarkGRPCUnaryAsync(options core.Options) {
 		options,
 		func() core.Client { return &grpc_unary_async.Client{} },
 		func() core.Server { return &grpc_unary_async.Server{} },
-		func() core.SpanGenerator { return otlp.NewGenerator() },
-	)
-}
-
-func benchmarkGRPCStreamLBTimedSync(options core.Options, streamReopenPeriod time.Duration) {
-	benchmarkImpl(
-		"GRPC/Stream/LBTimed/Sync",
-		options,
-		func() core.Client { return &grpc_stream_lb.Client{StreamReopenPeriod: streamReopenPeriod} },
-		func() core.Server { return &grpc_stream_lb.Server{} },
-		func() core.SpanGenerator { return experimental.NewGenerator() },
-	)
-}
-
-func benchmarkGRPCStreamLBAlwaysSync(options core.Options) {
-	benchmarkImpl(
-		"GRPC/Stream/LBAlways/Sync",
-		options,
-		func() core.Client { return &grpc_stream_lb.Client{ReopenAfterEveryRequest: true} },
-		func() core.Server { return &grpc_stream_lb.Server{} },
-		func() core.SpanGenerator { return experimental.NewGenerator() },
-	)
-}
-
-func benchmarkGRPCStreamLBAsync(
-	options core.Options,
-	streamReopenPeriod time.Duration,
-	rebalanceRequestLimit uint,
-	concurrency int,
-) {
-	benchmarkImpl(
-		"GRPC/Stream/LBTimed/Async/"+strconv.Itoa(concurrency),
-		options,
-		func() core.Client {
-			return &grpc_stream_lb_async.Client{
-				Concurrency:              concurrency,
-				StreamReopenPeriod:       streamReopenPeriod,
-				StreamReopenRequestCount: uint32(rebalanceRequestLimit),
-			}
-		},
-		func() core.Server { return &grpc_stream_lb_async.Server{} },
-		func() core.SpanGenerator { return experimental.NewGenerator() },
-	)
-}
-
-func benchmarkGRPCStreamLBSrv(options core.Options, streamReopenPeriod time.Duration, rebalanceRequestLimit uint) {
-	benchmarkImpl(
-		"GRPC/Stream/LBSrv/Async",
-		options,
-		func() core.Client { return &grpc_stream_lb_srv.Client{} },
-		func() core.Server {
-			return &grpc_stream_lb_srv.Server{
-				StreamReopenPeriod:       streamReopenPeriod,
-				StreamReopenRequestCount: rebalanceRequestLimit,
-			}
-		},
-		func() core.SpanGenerator { return experimental.NewGenerator() },
-	)
-}
-
-func benchmarkGRPCStreamNoLB(options core.Options) {
-	benchmarkImpl(
-		"GRPC/Stream/NoLB",
-		options,
-		func() core.Client { return &grpc_stream.Client{} },
-		func() core.Server { return &grpc_stream.Server{} },
-		func() core.SpanGenerator { return experimental.NewGenerator() },
-	)
-}
-
-func benchmarkWSStreamSync(options core.Options) {
-	benchmarkImpl(
-		"WebSocket/Stream/Sync",
-		options,
-		func() core.Client { return &ws_stream_sync.Client{} },
-		func() core.Server { return &ws_stream_sync.Server{} },
-		func() core.SpanGenerator { return experimental.NewGenerator() },
-	)
-}
-
-func benchmarkWSStreamAsync(options core.Options, compression experimental.CompressionMethod, concurrency int) {
-	var suffix string
-	switch compression {
-	case experimental.CompressionMethod_NONE:
-		suffix = ""
-	case experimental.CompressionMethod_ZLIB:
-		suffix = "/zlib"
-	case experimental.CompressionMethod_LZ4:
-		suffix = "/lz4"
-	}
-
-	benchmarkImpl(
-		"WebSocket/Stream/Async/"+strconv.Itoa(concurrency)+suffix,
-		options,
-		func() core.Client { return &ws_stream_async.Client{Compression: compression, Concurrency: concurrency} },
-		func() core.Server { return &ws_stream_async.Server{} },
-		func() core.SpanGenerator { return experimental.NewGenerator() },
+		func() core.MetricGenerator { return otlp.NewGenerator() },
 	)
 }
 
@@ -250,17 +99,7 @@ func benchmarkHttp11(options core.Options, concurrency int) {
 		options,
 		func() core.Client { return &http11.Client{Concurrency: concurrency} },
 		func() core.Server { return &http11.Server{} },
-		func() core.SpanGenerator { return otlp.NewGenerator() },
-	)
-}
-
-func benchmarkSAPM(options core.Options, concurrency int) {
-	benchmarkImpl(
-		"SAPM/"+strconv.Itoa(concurrency),
-		options,
-		func() core.Client { return &sapm.Client{Concurrency: concurrency} },
-		func() core.Server { return &sapm.Server{} },
-		func() core.SpanGenerator { return sapmenc.NewGenerator() },
+		func() core.MetricGenerator { return otlp.NewGenerator() },
 	)
 }
 
@@ -269,7 +108,7 @@ func benchmarkImpl(
 	options core.Options,
 	clientFactory func() core.Client,
 	serverFactory func() core.Server,
-	generatorFactory func() core.SpanGenerator,
+	generatorFactory func() core.MetricGenerator,
 ) {
 	cpuSecs, wallSecs := core.BenchmarkLocalDelivery(
 		clientFactory,

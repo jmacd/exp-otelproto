@@ -9,10 +9,10 @@ type SpanGenerator interface {
 type MetricGenerator interface {
 	GenerateMetricBatch(
 		metricsPerBatch int,
-		valuesPerTimeseries int,
-		int64 bool,
-		histogram bool,
-		summary bool,
+		pointsPerMetric int,
+		labelsPerMetric int,
+		labelNumValues float64,
+		aggregation Aggregation,
 	) ExportRequest
 }
 
@@ -25,4 +25,19 @@ type Generator interface {
 	SpanGenerator
 	MetricGenerator
 	LogGenerator
+}
+
+type LabelMaker struct {
+}
+type Label struct {
+	Key   string
+	Value string
+}
+
+func (l *LabelMaker) Get() []Label {
+	return nil // @@@
+}
+
+func NewLabelMaker(labelsPerMetric int, labelNumValues float64) *LabelMaker {
+	return &LabelMaker{}
 }

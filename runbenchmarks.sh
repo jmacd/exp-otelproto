@@ -22,7 +22,7 @@ echo "SAPM/N                      - SAPM, N concurrent requests. Load balacner f
 echo
 
 benchmark() {
-    nice -n -5 ./benchmark -protocol $1 -batches=${BATCHES} -spansperbatch=${SPANSPERBATCH} -attrperspan=${ATTRPERSPAN}
+    ./benchmark -protocol $1 -batches=${BATCHES} -spansperbatch=${SPANSPERBATCH} -attrperspan=${ATTRPERSPAN}
 }
 
 benchmark_all() {
@@ -50,16 +50,16 @@ benchmark_all() {
 benchmark_all_latency() {
     let roundtrip=$1*2
     echo ${roundtrip}ms network roundtrip latency
-    tc qdisc add dev lo root netem delay ${1}ms
+    #tc qdisc add dev lo root netem delay ${1}ms
     benchmark_all large
-    tc qdisc delete dev lo root netem delay ${1}ms
+    #tc qdisc delete dev lo root netem delay ${1}ms
 }
 
 benchmark_some_latency() {
     echo 200ms network roundtrip latency
     echo ${BATCHES} large batches, ${SPANSPERBATCH} spans per batch, ${ATTRPERSPAN} attrs per span
 
-    tc qdisc add dev lo root netem delay 100ms
+    #tc qdisc add dev lo root netem delay 100ms
     benchmark http11
     #benchmark unaryasync
     #benchmark opencensus
@@ -68,13 +68,13 @@ benchmark_some_latency() {
     benchmark wsstreamasync
     #benchmark wsstreamasyncconc
     #benchmark wsstreamasynczlib
-    tc qdisc delete dev lo root netem delay 100ms
+    #tc qdisc delete dev lo root netem delay 100ms
 }
 
 
 ./beforebenchmarks.sh
 
-tc qdisc delete dev lo root netem delay 100ms > /dev/null 2>&1
+#tc qdisc delete dev lo root netem delay 100ms > /dev/null 2>&1
 echo
 
 cd bin

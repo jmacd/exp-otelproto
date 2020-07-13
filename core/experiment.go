@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"os"
@@ -30,16 +29,27 @@ func RunTest(clnt Client, srv Server, gen SpanGenerator) {
 	}
 }
 
+type Aggregation int
+
+const (
+	INT64 Aggregation = iota
+	FLOAT64
+	MMLSC
+)
+
 type Options struct {
-	Batches       int
-	SpansPerBatch int
-	AttrPerSpan   int
+	Batches         int
+	MetricsPerBatch int
+	PointsPerMetric int
+	LabelsPerMetric int
+	LabelNumValues  float64
+	Aggregation     Aggregation
 }
 
 func BenchmarkLocalDelivery(
 	clientFactory func() Client,
 	serverFactory func() Server,
-	generatorFactory func() SpanGenerator,
+	generatorFactory func() MetricGenerator,
 	options Options,
 ) (cpuSecs float64, wallSecs float64) {
 	// Create client, server and generator from factories
@@ -90,7 +100,7 @@ func BenchmarkLocalDelivery(
 
 	var batches []ExportRequest
 	for i := 0; i < batchCount; i++ {
-		batches = append(batches, gen.GenerateSpanBatch(options.SpansPerBatch, options.AttrPerSpan, 0))
+		batches = append(batches, gen.GenerateMetricBatch(options.MetricsPerBatch, options.PointsPerMetric, options.LabelsPerMetric, options.LabelNumValues, options.Aggregation))
 	}
 
 	startCPUTimes, err := proc.Times()
@@ -134,68 +144,52 @@ func BenchmarkLocalDelivery(
 	return
 }
 
-func LoadGenerator(
-	clientFactory func() Client,
-	generatorFactory func() SpanGenerator,
-	serverEndpoint string,
-	spansPerSecond int,
-) {
-	// Create client, server and generator from factories
-	clnt := clientFactory()
-	gen := generatorFactory()
+// func LoadGenerator(
+// 	clientFactory func() Client,
+// 	generatorFactory func() MetricGenerator,
+// 	serverEndpoint string,
+// 	metricsPerSecond int,
+// ) {
+// 	// Create client, server and generator from factories
+// 	clnt := clientFactory()
+// 	gen := generatorFactory()
 
-	// Client connect to the server.
-	clnt.Connect(serverEndpoint)
+// 	// Client connect to the server.
+// 	clnt.Connect(serverEndpoint)
 
-	// Generate and send Batches.
-	totalSpans := 0
-	for {
-		startTime := time.Now()
-		ch := time.After(1 * time.Second)
-		batch := gen.GenerateSpanBatch(spansPerSecond, 10, 0)
-		clnt.Export(batch)
-		<-ch
-		wallSecs := time.Now().Sub(startTime).Seconds()
-		totalSpans += spansPerSecond
-		actualSpansPerSecond := float64(spansPerSecond) / wallSecs
-		fmt.Printf("Total spans sent %v, current rate %.1f spans/sec\n", totalSpans, actualSpansPerSecond)
-	}
-}
+// 	// Generate and send Batches.
+// 	totalMetrics := 0
+// 	for {
+// 		startTime := time.Now()
+// 		ch := time.After(1 * time.Second)
+// 		batch := gen.GenerateMetricBatch(metricsPerSecond, 10, 0)
+// 		clnt.Export(batch)
+// 		<-ch
+// 		wallSecs := time.Now().Sub(startTime).Seconds()
+// 		totalMetrics += metricsPerSecond
+// 		actualMetricsPerSecond := float64(metricsPerSecond) / wallSecs
+// 		fmt.Printf("Total metrics sent %v, current rate %.1f metrics/sec\n", totalMetrics, actualMetricsPerSecond)
+// 	}
+// }
 
-func RunServer(srv Server, listenAddress string, onReceive func(spanCount int)) {
+func RunServer(srv Server, listenAddress string, onReceive func(metricCount int)) {
 
 	log.Printf("Server: listening on %s", listenAddress)
 
-	totalSpans := 0
+	totalMetrics := 0
 	prevTime := time.Now()
 
-	srv.Listen(listenAddress, func(batch ExportRequest, spanCount int) {
+	srv.Listen(listenAddress, func(batch ExportRequest, metricCount int) {
 		t := time.Now()
 		d := t.Sub(prevTime)
 		prevTime = t
 
-		rate := float64(spanCount) / d.Seconds()
+		rate := float64(metricCount) / d.Seconds()
 
-		totalSpans += spanCount
-		log.Printf("Server: total spans received %v, current rate %.1f", totalSpans, rate)
+		totalMetrics += metricCount
+		log.Printf("Server: total metrics received %v, current rate %.1f", totalMetrics, rate)
 
-		onReceive(spanCount)
-	})
-}
-
-func RunAgent(clnt Client, srv Server, listenAddress, destination string) {
-
-	log.Printf("Agent: listening on %s", listenAddress)
-	log.Printf("Agent: forwarding to %s", destination)
-
-	err := clnt.Connect(destination)
-	if err != nil {
-		log.Fatalf("Cannot connection to %v: %v", destination, err)
-	}
-
-	srv.Listen(listenAddress, func(batch ExportRequest, spanCount int) {
-		log.Printf("Agent: forwarding %d span batch", spanCount)
-		clnt.Export(batch)
+		onReceive(metricCount)
 	})
 }
 

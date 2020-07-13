@@ -79,7 +79,7 @@ benchmark:
 
 benchmark-encoding:
 	sudo ./beforebenchmarks.sh
-	sudo nice -n -5 ${GO} test -bench . ./encodings -benchtime 5s -benchmem
+	sudo ${GO} test -bench . ./encodings -benchtime 5s -benchmem
 	sudo ./afterbenchmarks.sh
 
 run:
