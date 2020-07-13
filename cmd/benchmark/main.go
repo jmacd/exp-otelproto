@@ -19,7 +19,8 @@ import (
 func main() {
 	options := core.Options{}
 
-	ballastSizeBytes := uint64(4000) * 1024 * 1024
+	// ballastSizeBytes := uint64(4000) * 1024 * 1024
+	ballastSizeBytes := 0
 	ballast := make([]byte, ballastSizeBytes)
 
 	protocol := flag.String("protocol", "",
@@ -34,6 +35,7 @@ func main() {
 
 	var aggName = flag.String("aggregation", "", "aggregation name")
 	var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+	var memprofile = flag.String("memprofile", "", "write mem profile to file")
 
 	flag.Parse()
 
@@ -45,6 +47,14 @@ func main() {
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 	}
+	// if *memprofile != "" {
+	// 	f, err := os.Create(*memprofile)
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// 	pprof.StartMEMProfile(f)
+	// 	defer pprof.StopMEMProfile()
+	// }
 
 	switch *aggName {
 	case "mmlsc":
@@ -68,6 +78,18 @@ func main() {
 		benchmarkHttp11(options, 10)
 	default:
 		flag.Usage()
+	}
+
+	if *memprofile != "" {
+		f, err := os.Create(*memprofile)
+		if err != nil {
+			log.Fatal("could not create memory profile: ", err)
+		}
+		defer f.Close() // error handling omitted for example
+		runtime.GC()    // get up-to-date statistics
+		if err := pprof.WriteHeapProfile(f); err != nil {
+			log.Fatal("could not write memory profile: ", err)
+		}
 	}
 
 	runtime.KeepAlive(ballast)
