@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/golang/protobuf/proto"
-	otlptracecol "github.com/open-telemetry/opentelemetry-proto/gen/go/collector/trace/v1"
+	otlptracecol "github.com/open-telemetry/opentelemetry-proto/gen/go/collector/metrics/v1"
 
 	"github.com/tigrannajaryan/exp-otelproto/core"
 )
@@ -24,7 +24,7 @@ func telemetryReceiver(w http.ResponseWriter, r *http.Request, onReceive func(ba
 	}
 
 	//request := encodings.Decode(bytes)
-	var request otlptracecol.ExportTraceServiceRequest
+	var request otlptracecol.ExportMetricsServiceRequest
 	err = proto.Unmarshal(bytes, &request)
 	if err != nil {
 		log.Fatal("Unmarshal:", err)
@@ -35,9 +35,9 @@ func telemetryReceiver(w http.ResponseWriter, r *http.Request, onReceive func(ba
 	//	log.Fatal("Received 0 Id")
 	//}
 
-	onReceive(request, len(request.ResourceSpans[0].InstrumentationLibrarySpans[0].Spans))
+	onReceive(request, len(request.ResourceMetrics[0].InstrumentationLibraryMetrics[0].Metrics))
 
-	response := &otlptracecol.ExportTraceServiceResponse{}
+	response := &otlptracecol.ExportMetricsServiceResponse{}
 	responseBytes, err := proto.Marshal(response)
 	if err != nil {
 		log.Fatal("cannot encode:", err)

@@ -11,7 +11,7 @@ echo "OTLP/HTTP1.1/N              - OTLP ProtoBuf,HTTP 1.1, N concurrent request
 echo
 
 benchmark() {
-    ./benchmark -protocol ${1} -batches=${BATCHES} -metricsperbatch=${METRICSPERBATCH} -labelspermetric=${LABELSPERMETRIC} -aggregation int64 -
+    ./benchmark -protocol ${1} -batches=${BATCHES} -metricsperbatch=${METRICSPERBATCH} -labelspermetric=${LABELSPERMETRIC} -aggregation mmlsc
 }
 
 benchmark_all() {
