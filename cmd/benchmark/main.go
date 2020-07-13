@@ -30,10 +30,10 @@ func main() {
 	flag.IntVar(&options.MetricsPerBatch, "metricsperbatch", 100, "metrics per batch")
 	flag.IntVar(&options.PointsPerMetric, "pointspermetric", 1, "points per metric")
 	flag.IntVar(&options.LabelsPerMetric, "labelspermetric", 10, "labels per metric")
+	flag.IntVar(&options.LabelNumValues, "labelnumvalues", 3, "number of distinct values")
 
 	var aggName = flag.String("aggregation", "", "aggregation name")
 	var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
-	var aggregation core.Aggregation
 
 	flag.Parse()
 
@@ -48,13 +48,13 @@ func main() {
 
 	switch *aggName {
 	case "mmlsc":
-		aggregation = core.MMLSC
+		options.Aggregation = core.MMLSC
 	case "float64":
-		aggregation = core.FLOAT64
+		options.Aggregation = core.FLOAT64
 	case "int64":
-		aggregation = core.INT64
+		options.Aggregation = core.INT64
 	default:
-		log.Fatal("unrecognized aggregation: ", aggName)
+		log.Fatal("unrecognized aggregation: ", *aggName)
 	}
 
 	switch *protocol {
@@ -117,13 +117,13 @@ func benchmarkImpl(
 		options,
 	)
 
-	fmt.Printf("%-28s %7d spans|%5.1f cpusec|%5.1f wallsec|%7.1f batches/cpusec|%8.1f batches/wallsec|%5.1f cpuμs/span\n",
+	fmt.Printf("%-28s %7d metrics|%5.1f cpusec|%5.1f wallsec|%7.1f batches/cpusec|%8.1f batches/wallsec|%5.1f cpuμs/metric\n",
 		name,
-		options.Batches*options.SpansPerBatch,
+		options.Batches*options.MetricsPerBatch,
 		cpuSecs,
 		wallSecs,
 		float64(options.Batches)/cpuSecs,
 		float64(options.Batches)/wallSecs,
-		cpuSecs*1e6/float64(options.Batches*options.SpansPerBatch),
+		cpuSecs*1e6/float64(options.Batches*options.MetricsPerBatch),
 	)
 }

@@ -71,8 +71,6 @@ genflatbuffers:
 
 build:
 	go build -o bin/benchmark cmd/benchmark/main.go
-	go build -o bin/loadgen cmd/loadgen/main.go
-	go build -o bin/server cmd/server/main.go
 
 benchmark:
 	./runbenchmarks.sh

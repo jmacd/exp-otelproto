@@ -13,10 +13,8 @@ import (
 	"github.com/golang/protobuf/proto"
 
 	"github.com/tigrannajaryan/exp-otelproto/core"
-	"github.com/tigrannajaryan/exp-otelproto/encodings/baseline"
 	"github.com/tigrannajaryan/exp-otelproto/encodings/experimental"
 	"github.com/tigrannajaryan/exp-otelproto/encodings/otlp"
-	"github.com/tigrannajaryan/exp-otelproto/encodings/otlp_gogo"
 )
 
 const spansPerBatch = 1000
@@ -31,53 +29,28 @@ var tests = []struct {
 	name string
 	gen  func() core.Generator
 }{
-	//{
-	//	name: "OpenCensus",
-	//	gen:  func() core.Generator { return octraceprotobuf.NewGenerator() },
-	//},
-	//{
-	//	name: "Baseline",
-	//	gen:  func() core.Generator { return baseline.NewGenerator() },
-	//},
-	//{
-	//	name: "Experimental",
-	//	gen:  func() core.Generator { return experimental.NewGenerator() },
-	//},
 	{
 		name: "OTLP(Current)",
 		gen:  func() core.Generator { return otlp.NewGenerator() },
 	},
-	{
-		name: "Proposed",
-		gen:  func() core.Generator { return baseline.NewGenerator() },
-	},
-	{
-		name: "Alternate",
-		gen:  func() core.Generator { return experimental.NewGenerator() },
-	},
-	{
-		name: "OTLPgogo",
-		gen:  func() core.Generator { return otlp_gogo.NewGenerator() },
-	},
-	//// These are historical experiments. Uncomment if interested to see results.
-	//{
-	//	name: "OC+AttrAsMap",
-	//	gen:  func() core.Generator { return traceprotobuf.NewGenerator() },
-	//},
-	//{
-	//	name: "OC+AttrAsList+TimeWrapped",
-	//	gen:  func() core.Generator { return otlptimewrapped.NewGenerator() },
-	//},
+	// {
+	// 	name: "Proposed",
+	// 	gen:  func() core.Generator { return baseline.NewGenerator() },
+	// },
+	// {
+	// 	name: "Alternate",
+	// 	gen:  func() core.Generator { return experimental.NewGenerator() },
+	// },
 }
 
 var batchTypes = []struct {
 	name     string
 	batchGen func(gen core.Generator) []core.ExportRequest
 }{
-	{name: "Logs", batchGen: generateLogBatches},
-	{name: "Trace/Attribs", batchGen: generateAttrBatches},
+	// {name: "Logs", batchGen: generateLogBatches},
+	// {name: "Trace/Attribs", batchGen: generateAttrBatches},
 	//{name: "Trace/Events", batchGen: generateTimedEventBatches},
-	//{name: "Metric/Int64", batchGen: generateMetricInt64Batches},
+	{name: "Metric/Int64", batchGen: generateMetricInt64Batches},
 	//{name: "Metric/Summary", batchGen: generateMetricSummaryBatches},
 	//{name: "Metric/Histogram", batchGen: generateMetricHistogramBatches},
 	//{name: "Metric/HistogramSeries", batchGen: generateMetricHistogramSeriesBatches},
@@ -307,34 +280,34 @@ func generateLogBatches(gen core.Generator) []core.ExportRequest {
 	return batches
 }
 
-func generateMetricOneBatches(gen core.Generator) []core.ExportRequest {
-	var batches []core.ExportRequest
-	for i := 0; i < BatchCount; i++ {
-		batch := gen.GenerateMetricBatch(metricsPerBatch, 1, true, true, true)
-		if batch == nil {
-			return nil
-		}
-		batches = append(batches, batch)
-	}
-	return batches
-}
+// func generateMetricOneBatches(gen core.Generator) []core.ExportRequest {
+// 	var batches []core.ExportRequest
+// 	for i := 0; i < BatchCount; i++ {
+// 		batch := gen.GenerateMetricBatch(metricsPerBatch, 1, 10, 3, core.INT64)
+// 		if batch == nil {
+// 			return nil
+// 		}
+// 		batches = append(batches, batch)
+// 	}
+// 	return batches
+// }
 
-func generateMetricSeriesBatches(gen core.Generator) []core.ExportRequest {
-	var batches []core.ExportRequest
-	for i := 0; i < BatchCount; i++ {
-		batch := gen.GenerateMetricBatch(metricsPerBatch, 5, true, true, true)
-		if batch == nil {
-			return nil
-		}
-		batches = append(batches, batch)
-	}
-	return batches
-}
+// func generateMetricSeriesBatches(gen core.Generator) []core.ExportRequest {
+// 	var batches []core.ExportRequest
+// 	for i := 0; i < BatchCount; i++ {
+// 		batch := gen.GenerateMetricBatch(metricsPerBatch, 5, true, true, true)
+// 		if batch == nil {
+// 			return nil
+// 		}
+// 		batches = append(batches, batch)
+// 	}
+// 	return batches
+// }
 
 func generateMetricInt64Batches(gen core.Generator) []core.ExportRequest {
 	var batches []core.ExportRequest
 	for i := 0; i < BatchCount; i++ {
-		batch := gen.GenerateMetricBatch(metricsPerBatch, 1, true, false, false)
+		batch := gen.GenerateMetricBatch(metricsPerBatch, 1, 10, 3, core.INT64)
 		if batch == nil {
 			return nil
 		}
@@ -343,41 +316,41 @@ func generateMetricInt64Batches(gen core.Generator) []core.ExportRequest {
 	return batches
 }
 
-func generateMetricHistogramBatches(gen core.Generator) []core.ExportRequest {
-	var batches []core.ExportRequest
-	for i := 0; i < BatchCount; i++ {
-		batch := gen.GenerateMetricBatch(metricsPerBatch, 1, false, true, false)
-		if batch == nil {
-			return nil
-		}
-		batches = append(batches, batch)
-	}
-	return batches
-}
+// func generateMetricHistogramBatches(gen core.Generator) []core.ExportRequest {
+// 	var batches []core.ExportRequest
+// 	for i := 0; i < BatchCount; i++ {
+// 		batch := gen.GenerateMetricBatch(metricsPerBatch, 1, false, true, false)
+// 		if batch == nil {
+// 			return nil
+// 		}
+// 		batches = append(batches, batch)
+// 	}
+// 	return batches
+// }
 
-func generateMetricHistogramSeriesBatches(gen core.Generator) []core.ExportRequest {
-	var batches []core.ExportRequest
-	for i := 0; i < BatchCount; i++ {
-		batch := gen.GenerateMetricBatch(metricsPerBatch, 5, false, true, false)
-		if batch == nil {
-			return nil
-		}
-		batches = append(batches, batch)
-	}
-	return batches
-}
+// func generateMetricHistogramSeriesBatches(gen core.Generator) []core.ExportRequest {
+// 	var batches []core.ExportRequest
+// 	for i := 0; i < BatchCount; i++ {
+// 		batch := gen.GenerateMetricBatch(metricsPerBatch, 5, false, true, false)
+// 		if batch == nil {
+// 			return nil
+// 		}
+// 		batches = append(batches, batch)
+// 	}
+// 	return batches
+// }
 
-func generateMetricSummaryBatches(gen core.Generator) []core.ExportRequest {
-	var batches []core.ExportRequest
-	for i := 0; i < BatchCount; i++ {
-		batch := gen.GenerateMetricBatch(metricsPerBatch, 1, false, false, true)
-		if batch == nil {
-			return nil
-		}
-		batches = append(batches, batch)
-	}
-	return batches
-}
+// func generateMetricSummaryBatches(gen core.Generator) []core.ExportRequest {
+// 	var batches []core.ExportRequest
+// 	for i := 0; i < BatchCount; i++ {
+// 		batch := gen.GenerateMetricBatch(metricsPerBatch, 1, false, false, true)
+// 		if batch == nil {
+// 			return nil
+// 		}
+// 		batches = append(batches, batch)
+// 	}
+// 	return batches
+// }
 
 func encode(request core.ExportRequest) []byte {
 	bytes, err := proto.Marshal(request.(proto.Message))
@@ -404,42 +377,42 @@ func TestEncodeSize(t *testing.T) {
 		firstUncompessedSize int
 		firstCompressedSize  int
 	}{
+		// {
+		// 	name: "Logs",
+		// 	genFunc: func(gen core.Generator) core.ExportRequest {
+		// 		return gen.GenerateLogBatch(batchSize, 4)
+		// 	},
+		// },
+		// {
+		// 	name: "Trace/Attribs",
+		// 	genFunc: func(gen core.Generator) core.ExportRequest {
+		// 		return gen.GenerateSpanBatch(batchSize, attrsPerSpans, 0)
+		// 	},
+		// },
+		// {
+		// 	name: "Trace/Events",
+		// 	genFunc: func(gen core.Generator) core.ExportRequest {
+		// 		return gen.GenerateSpanBatch(batchSize, 0, eventsPerSpan)
+		// 	},
+		// },
 		{
-			name: "Logs",
+			name: "Metric/Int64",
 			genFunc: func(gen core.Generator) core.ExportRequest {
-				return gen.GenerateLogBatch(batchSize, 4)
+				return gen.GenerateMetricBatch(batchSize, 1, 3, 3, core.INT64)
 			},
 		},
-		{
-			name: "Trace/Attribs",
-			genFunc: func(gen core.Generator) core.ExportRequest {
-				return gen.GenerateSpanBatch(batchSize, attrsPerSpans, 0)
-			},
-		},
-		{
-			name: "Trace/Events",
-			genFunc: func(gen core.Generator) core.ExportRequest {
-				return gen.GenerateSpanBatch(batchSize, 0, eventsPerSpan)
-			},
-		},
-		{
-			name: "Metric/Histogram",
-			genFunc: func(gen core.Generator) core.ExportRequest {
-				return gen.GenerateMetricBatch(batchSize, 1, false, true, false)
-			},
-		},
-		{
-			name: "Metric/MixOne",
-			genFunc: func(gen core.Generator) core.ExportRequest {
-				return gen.GenerateMetricBatch(batchSize, 1, true, true, true)
-			},
-		},
-		{
-			name: "Metric/MixSeries",
-			genFunc: func(gen core.Generator) core.ExportRequest {
-				return gen.GenerateMetricBatch(batchSize, 5, true, true, true)
-			},
-		},
+		// {
+		// 	name: "Metric/MixOne",
+		// 	genFunc: func(gen core.Generator) core.ExportRequest {
+		// 		return gen.GenerateMetricBatch(batchSize, 1, true, true, true)
+		// 	},
+		// },
+		// {
+		// 	name: "Metric/MixSeries",
+		// 	genFunc: func(gen core.Generator) core.ExportRequest {
+		// 		return gen.GenerateMetricBatch(batchSize, 5, true, true, true)
+		// 	},
+		// },
 	}
 
 	fmt.Println("===== Encoded sizes")

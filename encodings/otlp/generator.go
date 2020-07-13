@@ -211,7 +211,7 @@ func (g *Generator) GenerateMetricBatch(
 	metricsPerBatch int,
 	pointsPerMetric int,
 	labelsPerMetric int,
-	labelNumValues float64,
+	labelNumValues int,
 	aggregation core.Aggregation,
 ) core.ExportRequest {
 

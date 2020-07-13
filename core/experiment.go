@@ -42,7 +42,7 @@ type Options struct {
 	MetricsPerBatch int
 	PointsPerMetric int
 	LabelsPerMetric int
-	LabelNumValues  float64
+	LabelNumValues  int
 	Aggregation     Aggregation
 }
 

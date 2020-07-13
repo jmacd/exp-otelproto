@@ -11,7 +11,7 @@ type MetricGenerator interface {
 		metricsPerBatch int,
 		pointsPerMetric int,
 		labelsPerMetric int,
-		labelNumValues float64,
+		labelNumValues int,
 		aggregation Aggregation,
 	) ExportRequest
 }
@@ -38,6 +38,6 @@ func (l *LabelMaker) Get() []Label {
 	return nil // @@@
 }
 
-func NewLabelMaker(labelsPerMetric int, labelNumValues float64) *LabelMaker {
+func NewLabelMaker(labelsPerMetric int, labelNumValues int) *LabelMaker {
 	return &LabelMaker{}
 }
