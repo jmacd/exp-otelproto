@@ -58,10 +58,10 @@ func main() {
 	}
 
 	switch *protocol {
-	case "unary":
-		benchmarkGRPCUnary(options)
-	case "unaryasync":
-		benchmarkGRPCUnaryAsync(options)
+	// case "unary":
+	// 	benchmarkGRPCUnary(options)
+	// case "unaryasync":
+	// 	benchmarkGRPCUnaryAsync(options)
 	case "http11":
 		benchmarkHttp11(options, 1)
 	case "http11conc":

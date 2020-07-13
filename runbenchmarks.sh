@@ -23,8 +23,8 @@ benchmark_all() {
     #benchmark wsstreamasync
     #benchmark wsstreamasyncconc
     #benchmark wsstreamasynczlib
-    benchmark unary
-    benchmark unaryasync
+    #benchmark unary
+    #benchmark unaryasync
     #benchmark streamlbasync
     #benchmark streamlbconc
     #benchmark opencensus
