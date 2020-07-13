@@ -238,8 +238,8 @@ func (g *Generator) GenerateMetricBatch(
 		case core.MMLSC:
 			il.Metrics = append(il.Metrics, genMMLSC(startTime, i, lmaker, pointsPerMetric))
 		// case core.HISTOGRAM:
-		// il.Metrics = append(il.Metrics,
-		// genHistogram(startTime, i, lmaker, pointsPerMetric))
+		//      il.Metrics = append(il.Metrics,
+		//          genHistogram(startTime, i, lmaker, pointsPerMetric))
 		default:
 			log.Fatal("impossible")
 		}

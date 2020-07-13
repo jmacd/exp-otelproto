@@ -396,9 +396,39 @@ func TestEncodeSize(t *testing.T) {
 		// 	},
 		// },
 		{
-			name: "Metric/Int64",
+			name: "Metric/Int64/1-3-3",
 			genFunc: func(gen core.Generator) core.ExportRequest {
 				return gen.GenerateMetricBatch(batchSize, 1, 3, 3, core.INT64)
+			},
+		},
+		{
+			name: "Metric/Float64/1-3-3",
+			genFunc: func(gen core.Generator) core.ExportRequest {
+				return gen.GenerateMetricBatch(batchSize, 1, 3, 3, core.FLOAT64)
+			},
+		},
+		{
+			name: "Metric/Int64/10-10-3",
+			genFunc: func(gen core.Generator) core.ExportRequest {
+				return gen.GenerateMetricBatch(batchSize, 10, 10, 3, core.INT64)
+			},
+		},
+		{
+			name: "Metric/Float64/10-10-3",
+			genFunc: func(gen core.Generator) core.ExportRequest {
+				return gen.GenerateMetricBatch(batchSize, 10, 10, 3, core.FLOAT64)
+			},
+		},
+		{
+			name: "Metric/Int64/10-10-30",
+			genFunc: func(gen core.Generator) core.ExportRequest {
+				return gen.GenerateMetricBatch(batchSize, 10, 10, 30, core.INT64)
+			},
+		},
+		{
+			name: "Metric/Float64/10-10-30",
+			genFunc: func(gen core.Generator) core.ExportRequest {
+				return gen.GenerateMetricBatch(batchSize, 10, 10, 30, core.FLOAT64)
 			},
 		},
 		// {
