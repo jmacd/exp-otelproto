@@ -47,14 +47,6 @@ func main() {
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 	}
-	// if *memprofile != "" {
-	// 	f, err := os.Create(*memprofile)
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 	}
-	// 	pprof.StartMEMProfile(f)
-	// 	defer pprof.StopMEMProfile()
-	// }
 
 	switch *aggName {
 	case "mmlsc":
@@ -139,13 +131,13 @@ func benchmarkImpl(
 		options,
 	)
 
-	fmt.Printf("%-28s %7d metrics|%5.1f cpusec|%5.1f wallsec|%7.1f batches/cpusec|%8.1f batches/wallsec|%5.1f cpuμs/metric\n",
+	fmt.Printf("%-28s %7d points|%5.1f cpusec|%5.1f wallsec|%7.1f batches/cpusec|%8.1f batches/wallsec|%5.1f cpuμs/point\n",
 		name,
-		options.Batches*options.MetricsPerBatch,
+		options.Batches*options.MetricsPerBatch*options.PointsPerMetric,
 		cpuSecs,
 		wallSecs,
 		float64(options.Batches)/cpuSecs,
 		float64(options.Batches)/wallSecs,
-		cpuSecs*1e6/float64(options.Batches*options.MetricsPerBatch),
+		cpuSecs*1e6/float64(options.Batches*options.MetricsPerBatch*options.PointsPerMetric),
 	)
 }
