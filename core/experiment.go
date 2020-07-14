@@ -49,7 +49,7 @@ type Options struct {
 func BenchmarkLocalDelivery(
 	clientFactory func() Client,
 	serverFactory func() Server,
-	generatorFactory func() MetricGenerator,
+	generatorFactory func() Generator,
 	options Options,
 ) (cpuSecs float64, wallSecs float64) {
 	// Create client, server and generator from factories

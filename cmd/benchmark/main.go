@@ -11,8 +11,7 @@ import (
 
 	"github.com/tigrannajaryan/exp-otelproto/core"
 	"github.com/tigrannajaryan/exp-otelproto/encodings/otlp"
-	"github.com/tigrannajaryan/exp-otelproto/protoimpls/grpc_unary"
-	"github.com/tigrannajaryan/exp-otelproto/protoimpls/grpc_unary_async"
+	"github.com/tigrannajaryan/exp-otelproto/encodings/otlpexperiment"
 	"github.com/tigrannajaryan/exp-otelproto/protoimpls/http11"
 )
 
@@ -23,9 +22,8 @@ func main() {
 	ballastSizeBytes := 0
 	ballast := make([]byte, ballastSizeBytes)
 
-	protocol := flag.String("protocol", "",
-		"protocol to benchmark (unary,unaryasync,http11,http11conc)",
-	)
+	protocol := flag.String("protocol", "", "protocol to benchmark (http11,http11conc)")
+	encoding := flag.String("encoding", "", "encoding to benchmark (otlp,experiment)")
 
 	flag.IntVar(&options.Batches, "batches", 100, "total batches to send")
 	flag.IntVar(&options.MetricsPerBatch, "metricsperbatch", 100, "metrics per batch")
@@ -48,6 +46,16 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
+	var gen func() core.Generator
+	switch *encoding {
+	case "otlp":
+		gen = otlp.NewGenerator
+	case "experiment":
+		gen = otlpexperiment.NewGenerator
+	default:
+		log.Fatal("unrecognized encoding: ", *encoding)
+	}
+
 	switch *aggName {
 	case "mmlsc":
 		options.Aggregation = core.MMLSC
@@ -58,16 +66,13 @@ func main() {
 	default:
 		log.Fatal("unrecognized aggregation: ", *aggName)
 	}
+	name := fmt.Sprint(*protocol, "/", *encoding, "/", *aggName)
 
 	switch *protocol {
-	// case "unary":
-	// 	benchmarkGRPCUnary(options)
-	// case "unaryasync":
-	// 	benchmarkGRPCUnaryAsync(options)
 	case "http11":
-		benchmarkHttp11(options, 1)
+		benchmarkHttp11(name, options, 1, gen)
 	case "http11conc":
-		benchmarkHttp11(options, 10)
+		benchmarkHttp11(name, options, 10, gen)
 	default:
 		flag.Usage()
 	}
@@ -87,33 +92,13 @@ func main() {
 	runtime.KeepAlive(ballast)
 }
 
-func benchmarkGRPCUnary(options core.Options) {
+func benchmarkHttp11(name string, options core.Options, concurrency int, gen func() core.Generator) {
 	benchmarkImpl(
-		"OTLP/GRPC-Unary/Sequential",
-		options,
-		func() core.Client { return &grpc_unary.Client{} },
-		func() core.Server { return &grpc_unary.Server{} },
-		func() core.MetricGenerator { return otlp.NewGenerator() },
-	)
-}
-
-func benchmarkGRPCUnaryAsync(options core.Options) {
-	benchmarkImpl(
-		"OTLP/GRPC-Unary/Concurrent",
-		options,
-		func() core.Client { return &grpc_unary_async.Client{} },
-		func() core.Server { return &grpc_unary_async.Server{} },
-		func() core.MetricGenerator { return otlp.NewGenerator() },
-	)
-}
-
-func benchmarkHttp11(options core.Options, concurrency int) {
-	benchmarkImpl(
-		"OTLP/HTTP1.1/"+strconv.Itoa(concurrency),
+		name+"/"+strconv.Itoa(concurrency),
 		options,
 		func() core.Client { return &http11.Client{Concurrency: concurrency} },
 		func() core.Server { return &http11.Server{} },
-		func() core.MetricGenerator { return otlp.NewGenerator() },
+		gen,
 	)
 }
 
@@ -122,7 +107,7 @@ func benchmarkImpl(
 	options core.Options,
 	clientFactory func() core.Client,
 	serverFactory func() core.Server,
-	generatorFactory func() core.MetricGenerator,
+	generatorFactory func() core.Generator,
 ) {
 	cpuSecs, wallSecs := core.BenchmarkLocalDelivery(
 		clientFactory,

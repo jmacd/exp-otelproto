@@ -20,7 +20,7 @@ type Client struct {
 	Compression   experimental.CompressionMethod
 	clientStreams []*worker
 	Concurrency   int
-	requestsCh    chan *otlpmetriccol.ExportMetricsServiceRequest
+	requestsCh    chan proto.Message
 	//semaphor   chan int
 	nextStream int64
 }
@@ -32,14 +32,14 @@ type worker struct {
 	//pendingAckMutex sync.Mutex
 	nextId      uint64
 	Compression experimental.CompressionMethod
-	requestsCh  chan *otlpmetriccol.ExportMetricsServiceRequest
+	requestsCh  chan proto.Message
 	url         string
 	httpClient  *http.Client
 }
 
 func (c *Client) Connect(server string) error {
 	//c.semaphor = make(chan int, c.Concurrency)
-	c.requestsCh = make(chan *otlpmetriccol.ExportMetricsServiceRequest, 10*c.Concurrency)
+	c.requestsCh = make(chan proto.Message, 10*c.Concurrency)
 	c.clientStreams = make([]*worker, c.Concurrency)
 
 	for i := 0; i < c.Concurrency; i++ {
@@ -78,7 +78,7 @@ func newWorker(client *Client) *worker {
 
 func (c *Client) Export(batch core.ExportRequest) {
 	if c.Concurrency == 1 {
-		c.clientStreams[0].sendRequest(batch.(*otlpmetriccol.ExportMetricsServiceRequest))
+		c.clientStreams[0].sendRequest(batch)
 		return
 	}
 
@@ -91,7 +91,7 @@ func (c *Client) Export(batch core.ExportRequest) {
 	//c.clientStreams[si%int64(c.Concurrency)].requestsCh <- batch.(*experimental.TraceExportRequest)
 	//<-c.semaphor
 
-	c.requestsCh <- batch.(*otlpmetriccol.ExportMetricsServiceRequest)
+	c.requestsCh <- batch.(proto.Message)
 }
 
 func (c *Client) Shutdown() {
@@ -113,7 +113,7 @@ func (c *worker) processSendRequests() {
 }
 
 func (c *worker) sendRequest(batch core.ExportRequest) {
-	request := batch.(*otlpmetriccol.ExportMetricsServiceRequest)
+	request := batch.(proto.Message)
 	//if request.Id != 0 {
 	//	log.Fatal("Request is still processing but got overwritten")
 	//}

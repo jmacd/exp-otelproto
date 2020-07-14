@@ -51,6 +51,7 @@ var batchTypes = []struct {
 	// {name: "Trace/Attribs", batchGen: generateAttrBatches},
 	//{name: "Trace/Events", batchGen: generateTimedEventBatches},
 	{name: "Metric/Int64", batchGen: generateMetricInt64Batches},
+	{name: "Metric/MMLSC", batchGen: generateMetricMMLSCBatches},
 	//{name: "Metric/Summary", batchGen: generateMetricSummaryBatches},
 	//{name: "Metric/Histogram", batchGen: generateMetricHistogramBatches},
 	//{name: "Metric/HistogramSeries", batchGen: generateMetricHistogramSeriesBatches},
@@ -316,6 +317,18 @@ func generateMetricInt64Batches(gen core.Generator) []core.ExportRequest {
 	return batches
 }
 
+func generateMetricMMLSCBatches(gen core.Generator) []core.ExportRequest {
+	var batches []core.ExportRequest
+	for i := 0; i < BatchCount; i++ {
+		batch := gen.GenerateMetricBatch(metricsPerBatch, 1, 10, 3, core.MMLSC)
+		if batch == nil {
+			return nil
+		}
+		batches = append(batches, batch)
+	}
+	return batches
+}
+
 // func generateMetricHistogramBatches(gen core.Generator) []core.ExportRequest {
 // 	var batches []core.ExportRequest
 // 	for i := 0; i < BatchCount; i++ {
@@ -408,29 +421,47 @@ func TestEncodeSize(t *testing.T) {
 			},
 		},
 		{
-			name: "Metric/Int64/10-10-3",
+			name: "Metric/MMLSC/1-3-3",
 			genFunc: func(gen core.Generator) core.ExportRequest {
-				return gen.GenerateMetricBatch(batchSize, 10, 10, 3, core.INT64)
+				return gen.GenerateMetricBatch(batchSize, 1, 3, 3, core.MMLSC)
 			},
 		},
-		{
-			name: "Metric/Float64/10-10-3",
-			genFunc: func(gen core.Generator) core.ExportRequest {
-				return gen.GenerateMetricBatch(batchSize, 10, 10, 3, core.FLOAT64)
-			},
-		},
-		{
-			name: "Metric/Int64/10-10-30",
-			genFunc: func(gen core.Generator) core.ExportRequest {
-				return gen.GenerateMetricBatch(batchSize, 10, 10, 30, core.INT64)
-			},
-		},
-		{
-			name: "Metric/Float64/10-10-30",
-			genFunc: func(gen core.Generator) core.ExportRequest {
-				return gen.GenerateMetricBatch(batchSize, 10, 10, 30, core.FLOAT64)
-			},
-		},
+		// {
+		// 	name: "Metric/Int64/10-10-3",
+		// 	genFunc: func(gen core.Generator) core.ExportRequest {
+		// 		return gen.GenerateMetricBatch(batchSize, 10, 10, 3, core.INT64)
+		// 	},
+		// },
+		// {
+		// 	name: "Metric/Float64/10-10-3",
+		// 	genFunc: func(gen core.Generator) core.ExportRequest {
+		// 		return gen.GenerateMetricBatch(batchSize, 10, 10, 3, core.FLOAT64)
+		// 	},
+		// },
+		// {
+		// 	name: "Metric/MMLSC/10-10-3",
+		// 	genFunc: func(gen core.Generator) core.ExportRequest {
+		// 		return gen.GenerateMetricBatch(batchSize, 10, 10, 3, core.MMLSC)
+		// 	},
+		// },
+		// {
+		// 	name: "Metric/Int64/10-10-30",
+		// 	genFunc: func(gen core.Generator) core.ExportRequest {
+		// 		return gen.GenerateMetricBatch(batchSize, 10, 10, 30, core.INT64)
+		// 	},
+		// },
+		// {
+		// 	name: "Metric/Float64/10-10-30",
+		// 	genFunc: func(gen core.Generator) core.ExportRequest {
+		// 		return gen.GenerateMetricBatch(batchSize, 10, 10, 30, core.FLOAT64)
+		// 	},
+		// },
+		// {
+		// 	name: "Metric/MMLSC/10-10-30",
+		// 	genFunc: func(gen core.Generator) core.ExportRequest {
+		// 		return gen.GenerateMetricBatch(batchSize, 10, 10, 30, core.MMLSC)
+		// 	},
+		// },
 		// {
 		// 	name: "Metric/MixOne",
 		// 	genFunc: func(gen core.Generator) core.ExportRequest {

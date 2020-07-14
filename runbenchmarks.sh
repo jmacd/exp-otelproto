@@ -5,34 +5,29 @@ MULTIPLIER=10
 
 echo ====================================================================================
 echo Legend:
-echo "OTLP/GRPC-Unary/Sequential  - OTLP, Unary, sequential. One request per batch, load balancer friendly, with ack"
-echo "OTLP/GRPC-Unary/Concurrent  - OTLP, Unary, 10 concurrent requests, load balancer friendly, with ack"
-echo "OTLP/HTTP1.1/N              - OTLP ProtoBuf,HTTP 1.1, N concurrent requests. Load balancer friendly."
+echo "http/otlp/N     - OTLP baseline, ProtoBuf,HTTP 1.1, N concurrent requests."
+echo "http/otlpexp/N  - OTLP experiment, ProtoBuf,HTTP 1.1, N concurrent requests."
 echo
 
 benchmark() {
-    ./benchmark -protocol ${1} -batches=${BATCHES} -metricsperbatch=${METRICSPERBATCH} -labelspermetric=${LABELSPERMETRIC} -aggregation mmlsc
+    ./benchmark -protocol "${1}" -encoding "${2}" -batches=${BATCHES} -metricsperbatch=${METRICSPERBATCH} -labelspermetric=${LABELSPERMETRIC} -aggregation "${3}"
 }
 
 benchmark_all() {
     echo ${BATCHES} $1 batches, ${METRICSPERBATCH} metrics per batch, ${LABELSPERMETRIC} attrs per metric
-    #benchmark sapm
-    benchmark http11
-    benchmark http11conc
-    #benchmark wsstreamsync
-    #benchmark wsstreamasync
-    #benchmark wsstreamasyncconc
-    #benchmark wsstreamasynczlib
-    #benchmark unary
-    #benchmark unaryasync
-    #benchmark streamlbasync
-    #benchmark streamlbconc
-    #benchmark opencensus
-    #benchmark ocack
-    #benchmark streamsync
-    #benchmark streamlbalwayssync
-    #benchmark streamlbtimedsync
-    #benchmark streamlbsrv
+    benchmark http11 otlp int64
+    benchmark http11conc otlp int64
+    benchmark http11 otlp float64
+    benchmark http11conc otlp float64
+    benchmark http11 otlp mmlsc
+    benchmark http11conc otlp mmlsc
+
+    benchmark http11 experiment int64
+    benchmark http11conc experiment int64
+    benchmark http11 experiment float64
+    benchmark http11conc experiment float64
+    benchmark http11 experiment mmlsc
+    benchmark http11conc experiment mmlsc
     echo
 }
 

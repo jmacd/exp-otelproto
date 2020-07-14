@@ -1,4 +1,4 @@
-package otlp
+package otlpexperiment
 
 import (
 	"log"
@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
-	otlpmetriccol "github.com/open-telemetry/opentelemetry-proto/gen/go/collector/metrics/v1"
-	otlpcommon "github.com/open-telemetry/opentelemetry-proto/gen/go/common/v1"
-	otlpmetric "github.com/open-telemetry/opentelemetry-proto/gen/go/metrics/v1"
-	otlpresource "github.com/open-telemetry/opentelemetry-proto/gen/go/resource/v1"
+	otlpmetriccol "github.com/jmacd/opentelemetry-proto/gen/go/collector/metrics/v1"
+	otlpcommon "github.com/jmacd/opentelemetry-proto/gen/go/common/v1"
+	otlpmetric "github.com/jmacd/opentelemetry-proto/gen/go/metrics/v1"
+	otlpresource "github.com/jmacd/opentelemetry-proto/gen/go/resource/v1"
 
 	"github.com/tigrannajaryan/exp-otelproto/core"
 )
@@ -75,17 +75,17 @@ func (g *Generator) GenerateLogBatch(logsPerBatch int, attrsPerLog int) core.Exp
 	return nil
 }
 
-func GenInt64Timeseries(startTime time.Time, offset int, lmaker *core.LabelMaker, pointsPerMetric int) []*otlpmetric.Int64DataPoint {
-	var timeseries []*otlpmetric.Int64DataPoint
+func GenInt64Timeseries(startTime time.Time, offset int, lmaker *core.LabelMaker, pointsPerMetric int) []*otlpmetric.DataPoint {
+	var timeseries []*otlpmetric.DataPoint
 	for j := 0; j < 1; j++ {
-		var points []*otlpmetric.Int64DataPoint
+		var points []*otlpmetric.DataPoint
 
 		for k := 0; k < pointsPerMetric; k++ {
 			pointTs := core.TimeToTimestamp(startTime.Add(time.Duration(j*k) * time.Millisecond))
 
-			point := otlpmetric.Int64DataPoint{
+			point := otlpmetric.DataPoint{
 				TimeUnixNano: pointTs,
-				Value:        int64(offset * j * k),
+				ValueInt64:   int64(offset * j * k),
 				Labels:       otlpLabels(lmaker.Get()),
 			}
 
@@ -113,17 +113,17 @@ func otlpLabels(labels []core.Label) []*otlpcommon.StringKeyValue {
 	return r
 }
 
-func GenFloat64Timeseries(startTime time.Time, offset int, lmaker *core.LabelMaker, pointsPerMetric int) []*otlpmetric.DoubleDataPoint {
-	var timeseries []*otlpmetric.DoubleDataPoint
+func GenFloat64Timeseries(startTime time.Time, offset int, lmaker *core.LabelMaker, pointsPerMetric int) []*otlpmetric.DataPoint {
+	var timeseries []*otlpmetric.DataPoint
 	for j := 0; j < 1; j++ {
-		var points []*otlpmetric.DoubleDataPoint
+		var points []*otlpmetric.DataPoint
 
 		for k := 0; k < pointsPerMetric; k++ {
 			pointTs := core.TimeToTimestamp(startTime.Add(time.Duration(j*k) * time.Millisecond))
 
-			point := otlpmetric.DoubleDataPoint{
+			point := otlpmetric.DataPoint{
 				TimeUnixNano: pointTs,
-				Value:        float64(offset * j * k),
+				ValueDouble:  float64(offset * j * k),
 				Labels:       otlpLabels(lmaker.Get()),
 			}
 
@@ -142,10 +142,11 @@ func GenFloat64Timeseries(startTime time.Time, offset int, lmaker *core.LabelMak
 
 func genInt64Gauge(startTime time.Time, i int, lmaker *core.LabelMaker, pointsPerMetric int) *otlpmetric.Metric {
 	descr := GenMetricDescriptor(i)
+	descr.ValueType = otlpmetric.MetricDescriptor_SCALAR_INT64
 
 	metric1 := &otlpmetric.Metric{
-		MetricDescriptor: descr,
-		Int64DataPoints:  GenInt64Timeseries(startTime, i, lmaker, pointsPerMetric),
+		Descriptor_: descr,
+		Points:      GenInt64Timeseries(startTime, i, lmaker, pointsPerMetric),
 	}
 
 	return metric1
@@ -153,10 +154,11 @@ func genInt64Gauge(startTime time.Time, i int, lmaker *core.LabelMaker, pointsPe
 
 func genFloat64Gauge(startTime time.Time, i int, lmaker *core.LabelMaker, pointsPerMetric int) *otlpmetric.Metric {
 	descr := GenMetricDescriptor(i)
+	descr.ValueType = otlpmetric.MetricDescriptor_SCALAR_DOUBLE
 
 	metric1 := &otlpmetric.Metric{
-		MetricDescriptor: descr,
-		DoubleDataPoints: GenFloat64Timeseries(startTime, i, lmaker, pointsPerMetric),
+		Descriptor_: descr,
+		Points:      GenFloat64Timeseries(startTime, i, lmaker, pointsPerMetric),
 	}
 
 	return metric1
@@ -167,31 +169,33 @@ func GenMetricDescriptor(i int) *otlpmetric.MetricDescriptor {
 		Name:        "metric" + strconv.Itoa(i),
 		Description: "some description: " + strconv.Itoa(i),
 		Unit:        "By",
-		Type:        otlpmetric.MetricDescriptor_INT64,
-		Temporality: otlpmetric.MetricDescriptor_CUMULATIVE,
+		ValueType:   otlpmetric.MetricDescriptor_SCALAR_INT64,
+		Kind:        otlpmetric.MetricDescriptor_GROUPING_DELTA_SYNCHRONOUS,
 	}
 	return descr
 }
 
 func genMMLSC(startTime time.Time, i int, lmaker *core.LabelMaker, pointsPerMetric int) *otlpmetric.Metric {
 	descr := GenMetricDescriptor(i)
-	descr.Type = otlpmetric.MetricDescriptor_SUMMARY
+	descr.ValueType = otlpmetric.MetricDescriptor_SUMMARY_DOUBLE
 
-	var timeseries2 []*otlpmetric.SummaryDataPoint
+	var timeseries2 []*otlpmetric.DataPoint
 	for j := 0; j < 1; j++ {
-		var points []*otlpmetric.SummaryDataPoint
+		var points []*otlpmetric.DataPoint
 
 		for k := 0; k < pointsPerMetric; k++ {
 			pointTs := core.TimeToTimestamp(startTime.Add(time.Duration(j*k) * time.Millisecond))
 			val := float64(i * j * k)
-			point := otlpmetric.SummaryDataPoint{
+			point := otlpmetric.DataPoint{
 				TimeUnixNano: pointTs,
 				Labels:       otlpLabels(lmaker.Get()),
-				Count:        3,
-				Sum:          3 * val,
-				Last:         val,
-				Min:          val - 1,
-				Max:          val + 1,
+				Summary: &otlpmetric.Summary{
+					Count:      3,
+					SumDouble:  3 * val,
+					LastDouble: val,
+					MinDouble:  val - 1,
+					MaxDouble:  val + 1,
+				},
 			}
 			if k == 0 {
 				point.StartTimeUnixNano = pointTs
@@ -203,8 +207,8 @@ func genMMLSC(startTime time.Time, i int, lmaker *core.LabelMaker, pointsPerMetr
 	}
 
 	metric2 := &otlpmetric.Metric{
-		MetricDescriptor:  descr,
-		SummaryDataPoints: timeseries2,
+		Descriptor_: descr,
+		Points:      timeseries2,
 	}
 
 	return metric2
