@@ -27,7 +27,7 @@ func main() {
 
 	flag.IntVar(&options.Batches, "batches", 100, "total batches to send")
 	flag.IntVar(&options.MetricsPerBatch, "metricsperbatch", 100, "metrics per batch")
-	flag.IntVar(&options.PointsPerMetric, "pointspermetric", 1, "points per metric")
+	flag.IntVar(&options.PointsPerMetric, "pointspermetric", 10, "points per metric")
 	flag.IntVar(&options.LabelsPerMetric, "labelspermetric", 10, "labels per metric")
 	flag.IntVar(&options.LabelNumValues, "labelnumvalues", 3, "number of distinct values")
 

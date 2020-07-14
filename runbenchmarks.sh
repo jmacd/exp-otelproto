@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
 # Set MULTIPLIER to 1 for quick results and to 100 for more stable results.
-MULTIPLIER=10
+MULTIPLIER=50
 
 echo ====================================================================================
 echo Legend:
 echo "http/otlp/N     - OTLP baseline, ProtoBuf,HTTP 1.1, N concurrent requests."
-echo "http/otlpexp/N  - OTLP experiment, ProtoBuf,HTTP 1.1, N concurrent requests."
+echo "http/experiment/N  - OTLP experiment, ProtoBuf,HTTP 1.1, N concurrent requests."
 echo
 
 benchmark() {
@@ -14,7 +14,7 @@ benchmark() {
 }
 
 benchmark_all() {
-    echo ${BATCHES} $1 batches, ${METRICSPERBATCH} metrics per batch, ${LABELSPERMETRIC} attrs per metric
+    echo ${BATCHES} $1 batches, ${METRICSPERBATCH} metrics per batch, ${LABELSPERMETRIC} labels per metric
     benchmark http11 otlp int64
     benchmark http11conc otlp int64
     benchmark http11 otlp float64
